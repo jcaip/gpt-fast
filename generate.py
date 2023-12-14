@@ -231,6 +231,19 @@ def _load_model(checkpoint_path, device, precision, use_tp):
         apply_tp(model)
 
     model = model.to(device=device, dtype=precision)
+
+    # apply sparsity to model
+    print("sparsifying")
+    
+    from torch.ao.pruning import WeightNormPruner
+    from torch.sparse import to_sparse_semi_structured, SparseSemiStructuredTensor
+
+    # this is just for fp16
+    # TODO: apply to int8
+    for name, mod in model.named_modules():
+        if isinstance(mod, torch.nn.Linear):
+            mod.weight = torch.nn.Parameter(to_sparse_semi_structured(mod.weight))
+
     return model.eval()
 
 B_INST, E_INST = "[INST]", "[/INST]"
